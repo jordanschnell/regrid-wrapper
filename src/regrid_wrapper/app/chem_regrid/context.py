@@ -42,6 +42,7 @@ class DatasetName(StrEnum):
     GOES_WEST_ADP = "GOES_WEST_ADP"
     GOES_EAST_AOD = "GOES_EAST_AOD"
     GOES_EAST_ADP = "GOES_EAST_ADP"
+    EROD = "EROD"
 
 
 class ChemRegridContext(RwBaseModel):

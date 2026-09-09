@@ -554,6 +554,17 @@ class RaveToMpasRegridProcessor:
                         dst_field.value.data * area_subset,
                         collective=True,
                     )
+                elif self.context.dataset_name == "EROD":
+                    # Explicitly check data dimensions to ensure shape alignment
+                    erod_data = dst_field.value.data
+                    _LOGGER.info(f"EROD Data incoming shape: {erod_data.shape}")
+
+                    set_variable_data(
+                        var,
+                        dims,
+                        dst_field.value.data,
+                        collective=True,
+                    )
                 else:
                     set_variable_data(
                         var,
@@ -832,7 +843,7 @@ class RaveToMpasRegridProcessor:
 
             if self.context.dataset_name in ("RAVE", "NGFS"):
                 base_vars = ("latCell", "lonCell", "areaCell", "xtime")
-            elif self.context.dataset_name in ("FENGSHA_2D"):
+            elif self.context.dataset_name in ("FENGSHA_2D", "EROD"):
                 base_vars = ("latCell", "lonCell")
             else:
                 base_vars = ("latCell", "lonCell", "xtime")
@@ -1252,6 +1263,22 @@ def main(ctx: ChemRegridContext) -> None:
         time_name = "time"
         time_size = 12
         InterpMethod = "BILINEAR"
+    elif dataset_name == "EROD":
+        field_names = ("erod",)
+        x_center = "longitude"
+        y_center = "latitude"
+        x_dim = "lon"
+        y_dim = "lat"
+        x_corner = None
+        y_corner = None
+        x_corner_dim = None
+        y_corner_dim = None
+        level_in_name = "nSoilTypes"
+        level_out_name = "nSoilTypes"
+        level_out_size = 3
+        time_name = "None"
+        time_size = 0
+        InterpMethod = "BILINEAR"
     elif dataset_name == "FMC":  # fuel moisture content
         field_names = ("10h_dead_fuel_moisture_content",)
         dates_needed = []
@@ -1656,6 +1683,9 @@ def main(ctx: ChemRegridContext) -> None:
         elif dataset_name == "FENGSHA_2D_Time":
             rave_path = input_dir / "FENGSHA_RRFS_NA_3km_2026_2D_Time.nc"
             new_dst_path = output_dir / ("fengsha_dust_inputs.2D_Time."+ mesh_name + ".nc")
+        elif dataset_name == "EROD":
+            rave_path = input_dir / "EROD_RRFS_NA_3km_2026.nc"
+            new_dst_path = output_dir / ("dust_inputs.erod."+ mesh_name + ".nc")
 
         context = RaveToMpasRegridContext(
             dataset_name=dataset_name,

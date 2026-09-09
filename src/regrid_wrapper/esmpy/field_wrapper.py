@@ -141,7 +141,13 @@ def load_variable_data(
     var: nc.Variable,
     target_dims: DimensionCollection,
 ) -> np.ndarray:
-    slices = [slice(target_dims.get(ii).lower, target_dims.get(ii).upper) for ii in var.dimensions]
+    slices = []
+    for ii in var.dimensions:
+        try:
+            dim_bound = target_dims.get(ii)
+            slices.append(slice(dim_bound.lower, dim_bound.upper))
+        except ValueError:
+            slices.append(0) if ii == "nSoilTypes" else slices.append(slice(None))
     raw_data = var[*slices]
     dim_map = {dim: ii for ii, dim in enumerate(var.dimensions)}
     axes = [get_aliased_key(dim_map, ii.name) for ii in target_dims.value]
@@ -441,8 +447,20 @@ class NcToField:
     def create_field_wrapper(self) -> FieldWrapper:
         with open_nc(self.path, "r") as ds:
             if self.dim_time is None:
-                ndbounds: tuple[int, ...] | None = None
-                target_dims = self.gwrap.dims
+                if self.dim_level is None:
+                    ndbounds: tuple[int, ...] | None = None
+                    target_dims = self.gwrap.dims
+                else:
+                    ndbounds = (len(get_nc_dimension(ds, self.dim_level)),)
+                    level_dim = Dimension(
+                        name=self.dim_level,
+                        size=ndbounds[0],
+                        lower=0,
+                        upper=ndbounds[0],
+                        staggerloc=self.staggerloc,
+                        coordinate_type="level",
+                    )
+                    target_dims = DimensionCollection(value=tuple(list(self.gwrap.dims.value) + [level_dim]))
             else:
                 if self.dim_level is None:
                     ndbounds = (len(get_nc_dimension(ds, self.dim_time)),)
